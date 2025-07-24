@@ -172,10 +172,10 @@ describe('End-to-End Integration Tests', () => {
       };
 
       uas.forEach(ua => {
-        if (ua.includes('Chrome/') && !ua.includes('Edge/')) browserCounts.Chrome++;
+        if (ua.includes('Chrome/') && !ua.includes('Edg/')) browserCounts.Chrome++;
         else if (ua.includes('Firefox/')) browserCounts.Firefox++;
         else if (ua.includes('Safari/') && ua.includes('Version/')) browserCounts.Safari++;
-        else if (ua.includes('Edge/')) browserCounts.Edge++;
+        else if (ua.includes('Edg/')) browserCounts.Edge++;
       });
 
       // Chrome should dominate due to market share weighting
@@ -271,7 +271,7 @@ describe('End-to-End Integration Tests', () => {
         expect(ua).toMatch(/AppleWebKit\/[\d.]+|Gecko\/\d+/);
         
         // Should have browser info
-        expect(ua).toMatch(/Chrome\/[\d.]+|Firefox\/[\d.]+|Safari\/[\d.]+|Edge\/[\d.]+|Version\/[\d.]+/);
+        expect(ua).toMatch(/Chrome\/[\d.]+|Firefox\/[\d.]+|Safari\/[\d.]+|Edg\/[\d.]+|Version\/[\d.]+/);
         
         // Should not have malformed parentheses
         const openParens = (ua.match(/\(/g) || []).length;

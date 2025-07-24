@@ -7,6 +7,14 @@
   "bin": {
     "shua": "./bin/shua"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arnonsang/shadow-ua.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arnonsang/shadow-ua/issues"
+  },
+  "homepage": "https://github.com/arnonsang/shadow-ua#readme",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

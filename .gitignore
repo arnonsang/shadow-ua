@@ -98,6 +98,7 @@ test-*.txt
 test-*.js
 test-*.json
 *-test-output*
+ua-*-*.txt
 
 # Documentation that shouldn't be in package
 docs/

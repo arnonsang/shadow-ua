@@ -119,7 +119,7 @@ function detectPlatform(userAgent: string): Platform {
 }
 
 function detectBrowser(userAgent: string): Browser {
-  if (userAgent.includes('Edge/')) return Browser.Edge;
+  if (userAgent.includes('Edg/')) return Browser.Edge;
   if (userAgent.includes('Chrome/')) return Browser.Chrome;
   if (userAgent.includes('Firefox/')) return Browser.Firefox;
   if (userAgent.includes('Safari/') && !userAgent.includes('Chrome')) return Browser.Safari;
