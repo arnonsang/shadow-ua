@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { RequestContext } from '../types/api';
+import type { Request, Response, NextFunction } from 'express';
+import type { RequestContext } from '../types/api';
 
 // Simple stats tracking in memory
 class StatsTracker {

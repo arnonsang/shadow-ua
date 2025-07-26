@@ -41,6 +41,19 @@ export interface BrowserFingerprint {
     publicIP?: string;
     localIPs: string[];
   };
+  canvas: {
+    noiseLevel: number;
+    textMetrics: {
+      fontList: string[];
+      baselines: number[];
+    };
+    imageData: {
+      r: number;
+      g: number;
+      b: number;
+      a: number;
+    }[];
+  };
 }
 
 export interface PuppeteerConfig {
@@ -265,6 +278,124 @@ function getScreenResolution(deviceType: DeviceType): { width: number; height: n
   return resolutions[0]; // Fallback
 }
 
+// Generate WebRTC configuration with realistic IP masking
+function generateWebRTCConfig(platform: Platform): {
+  publicIP?: string;
+  localIPs: string[];
+} {
+  // Generate realistic local IP addresses based on platform
+  const commonNetworks = {
+    [Platform.Windows]: [
+      '192.168.1.',
+      '192.168.0.',
+      '10.0.0.',
+      '172.16.0.',
+    ],
+    [Platform.macOS]: [
+      '192.168.1.',
+      '10.0.0.',
+      '192.168.0.',
+      '172.16.1.',
+    ],
+    [Platform.Linux]: [
+      '192.168.1.',
+      '10.0.0.',
+      '192.168.0.',
+      '172.16.0.',
+      '127.0.0.',
+    ],
+    [Platform.Android]: [
+      '192.168.1.',
+      '192.168.43.', // Mobile hotspot
+      '10.0.0.',
+    ],
+    [Platform.iOS]: [
+      '192.168.1.',
+      '192.168.43.',
+      '10.0.0.',
+    ],
+  };
+  
+  const networks = commonNetworks[platform] || commonNetworks[Platform.Windows];
+  const selectedNetwork = networks[Math.floor(Math.random() * networks.length)];
+  
+  // Generate multiple local IPs (common in corporate/complex networks)  
+  const localIPs: string[] = [];
+  const numIPs = Math.floor(Math.random() * 3) + 1; // 1-3 local IPs
+  
+  for (let i = 0; i < numIPs; i++) {
+    const lastOctet = Math.floor(Math.random() * 254) + 1;
+    localIPs.push(selectedNetwork + lastOctet.toString());
+  }
+  
+  // Sometimes include IPv6 addresses
+  if (Math.random() > 0.7) {
+    const ipv6Prefixes = [
+      'fe80::',
+      '2001:db8::',
+      'fc00::',
+    ];
+    const prefix = ipv6Prefixes[Math.floor(Math.random() * ipv6Prefixes.length)];
+    const suffix = Math.floor(Math.random() * 0xffff).toString(16);
+    localIPs.push(prefix + suffix);
+  }
+  
+  // Rarely include public IP (simulates certain network configurations)
+  let publicIP: string | undefined;
+  if (Math.random() > 0.95) {
+    // Generate realistic public IP ranges (avoiding private ranges)
+    const publicRanges = [
+      '8.8.8.',
+      '1.1.1.',
+      '208.67.222.',
+      '156.154.70.',
+    ];
+    const range = publicRanges[Math.floor(Math.random() * publicRanges.length)];
+    publicIP = range + (Math.floor(Math.random() * 254) + 1).toString();
+  }
+  
+  return {
+    localIPs,
+    publicIP,
+  };
+}
+
+// Generate canvas fingerprint noise
+function generateCanvasFingerprint(browser: Browser, platform: Platform): {
+  noiseLevel: number;
+  textMetrics: { fontList: string[]; baselines: number[] };
+  imageData: { r: number; g: number; b: number; a: number }[];
+} {
+  // Different browsers have slightly different canvas implementations
+  const browserNoiseLevels = {
+    [Browser.Chrome]: { min: 0.001, max: 0.003 },
+    [Browser.Firefox]: { min: 0.002, max: 0.004 },
+    [Browser.Safari]: { min: 0.001, max: 0.002 },
+    [Browser.Edge]: { min: 0.001, max: 0.003 },
+  };
+  
+  const noiseRange = browserNoiseLevels[browser];
+  const noiseLevel = Math.random() * (noiseRange.max - noiseRange.min) + noiseRange.min;
+  
+  // Generate consistent but varied text metrics
+  const fontList = (PLATFORM_FONTS[platform] || PLATFORM_FONTS[Platform.Windows]).slice(0, 10);
+  const baselines = fontList.map(() => Math.random() * 2 + 10); // 10-12px typical baseline
+  
+  // Generate subtle image data variations (RGBA values)
+  const imageData = Array.from({ length: 4 }, () => ({
+    r: Math.floor(Math.random() * 256),
+    g: Math.floor(Math.random() * 256),
+    b: Math.floor(Math.random() * 256),
+    a: Math.floor(Math.random() * 256),
+  }));
+  
+  return {
+    noiseLevel,
+    textMetrics: { fontList, baselines },
+    imageData,
+  };
+}
+
 // Generate realistic timezone
 function getTimezone(platform: Platform): string {
   const timezones = {
@@ -342,6 +473,7 @@ export function generateBrowserFingerprint(components: UAComponents): BrowserFin
   const plugins = BROWSER_PLUGINS[components.browser] || [];
   const languages = getLanguages(components.platform);
   const timezone = getTimezone(components.platform);
+  const canvas = generateCanvasFingerprint(components.browser, components.platform);
   
   const isMobile = components.deviceType === DeviceType.Mobile;
   const isTablet = components.deviceType === DeviceType.Tablet;
@@ -382,9 +514,8 @@ export function generateBrowserFingerprint(components: UAComponents): BrowserFin
     fonts: fonts.slice(0, Math.floor(Math.random() * 10) + 15), // Random subset
     plugins,
     timezone,
-    webrtc: {
-      localIPs: ['192.168.1.' + Math.floor(Math.random() * 254 + 1)],
-    },
+    webrtc: generateWebRTCConfig(components.platform),
+    canvas,
   };
 }
 
@@ -476,10 +607,401 @@ export function generateFingerprintOverrides(fingerprint: BrowserFingerprint): s
     return new originalDateTimeFormat(...args);
   };
   
-  // Override fonts (if needed)
-  const originalOffscreenCanvas = window.OffscreenCanvas;
-  if (originalOffscreenCanvas) {
-    // Font fingerprint protection would go here
+  // Override WebRTC IP enumeration
+  if (window.RTCPeerConnection) {
+    const originalRTCPeerConnection = window.RTCPeerConnection;
+    const localIPs = ${JSON.stringify(fingerprint.webrtc.localIPs)};
+    ${fingerprint.webrtc.publicIP ? `const publicIP = '${fingerprint.webrtc.publicIP}';` : ''}
+    
+    window.RTCPeerConnection = function(configuration, ...args) {
+      const pc = new originalRTCPeerConnection(configuration, ...args);
+      
+      // Override createOffer to inject custom ICE candidates
+      const originalCreateOffer = pc.createOffer;
+      pc.createOffer = function(...args) {
+        return originalCreateOffer.apply(this, args).then(offer => {
+          // Modify SDP to include our custom local IPs
+          let sdp = offer.sdp;
+          localIPs.forEach((ip, index) => {
+            const candidateLine = \`a=candidate:1 1 UDP 2113667326 \${ip} 54400 typ host generation 0\\r\\n\`;
+            sdp = sdp.replace(/a=candidate:[^\\r\\n]*/g, candidateLine);
+          });
+          
+          ${fingerprint.webrtc.publicIP ? `
+          // Add public IP candidate if available
+          const publicCandidateLine = \`a=candidate:2 1 UDP 1677729535 \${publicIP} 54401 typ srflx raddr \${localIPs[0]} rport 54400 generation 0\\r\\n\`;
+          sdp += publicCandidateLine;
+          ` : ''}
+          
+          return { ...offer, sdp };
+        });
+      };
+      
+      // Override setLocalDescription to prevent IP leakage
+      const originalSetLocalDescription = pc.setLocalDescription;
+      pc.setLocalDescription = function(description, ...args) {
+        if (description && description.sdp) {
+          // Filter out real local IP candidates
+          let modifiedSdp = description.sdp;
+          localIPs.forEach(ip => {
+            const candidateRegex = new RegExp(\`a=candidate:[^\\r\\n]*\${ip.replace(/\\./g, '\\\\.')}[^\\r\\n]*\\r?\\n\`, 'g');
+            modifiedSdp = modifiedSdp.replace(candidateRegex, '');
+          });
+          
+          description = { ...description, sdp: modifiedSdp };
+        }
+        
+        return originalSetLocalDescription.call(this, description, ...args);
+      };
+      
+      return pc;
+    };
+    
+    // Also override the deprecated webkitRTCPeerConnection
+    if (window.webkitRTCPeerConnection) {
+      window.webkitRTCPeerConnection = window.RTCPeerConnection;
+    }
+  }
+  
+  // Override canvas fingerprinting
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function(contextType, ...args) {
+    const context = originalGetContext.call(this, contextType, ...args);
+    
+    if (contextType === '2d' && context) {
+      const originalGetImageData = context.getImageData;
+      context.getImageData = function(sx, sy, sw, sh) {
+        const imageData = originalGetImageData.call(this, sx, sy, sw, sh);
+        
+        // Add subtle noise to canvas data
+        for (let i = 0; i < imageData.data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * ${fingerprint.canvas.noiseLevel} * 255;
+          imageData.data[i] = Math.min(255, Math.max(0, imageData.data[i] + noise));     // R
+          imageData.data[i + 1] = Math.min(255, Math.max(0, imageData.data[i + 1] + noise)); // G
+          imageData.data[i + 2] = Math.min(255, Math.max(0, imageData.data[i + 2] + noise)); // B
+        }
+        
+        return imageData;
+      };
+      
+      const originalFillText = context.fillText;
+      context.fillText = function(text, x, y, maxWidth) {
+        // Add micro-variations to text rendering
+        const variation = (Math.random() - 0.5) * 0.01;
+        return originalFillText.call(this, text, x + variation, y + variation, maxWidth);
+      };
+      
+      const originalStrokeText = context.strokeText;
+      context.strokeText = function(text, x, y, maxWidth) {
+        const variation = (Math.random() - 0.5) * 0.01;
+        return originalStrokeText.call(this, text, x + variation, y + variation, maxWidth);
+      };
+    }
+    
+    return context;
+  };
+  
+  // Override toDataURL for canvas fingerprint protection
+  const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  HTMLCanvasElement.prototype.toDataURL = function(...args) {
+    const originalResult = originalToDataURL.apply(this, args);
+    
+    // Add minimal variation to prevent exact matching
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      canvas.width = this.width;
+      canvas.height = this.height;
+      ctx.drawImage(this, 0, 0);
+      
+      // Add single pixel noise
+      const imageData = ctx.getImageData(0, 0, 1, 1);
+      const noise = ${fingerprint.canvas.noiseLevel} * 255;
+      imageData.data[0] = Math.min(255, Math.max(0, imageData.data[0] + (Math.random() - 0.5) * noise));
+      ctx.putImageData(imageData, Math.floor(Math.random() * canvas.width), Math.floor(Math.random() * canvas.height));
+      
+      return canvas.toDataURL(...args);
+    }
+    
+    return originalResult;
+  };
+})();
+`.trim();
+}
+
+/**
+ * Generate canvas fingerprint randomization script
+ */
+export function generateCanvasNoiseScript(browser: Browser, platform: Platform): string {
+  const canvas = generateCanvasFingerprint(browser, platform);
+  
+  return `
+// Canvas fingerprint randomization
+(function() {
+  const NOISE_LEVEL = ${canvas.noiseLevel};
+  
+  // Override 2D context methods
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function(contextType, ...args) {
+    const context = originalGetContext.call(this, contextType, ...args);
+    
+    if (contextType === '2d' && context) {
+      // Randomize getImageData
+      const originalGetImageData = context.getImageData;
+      context.getImageData = function(sx, sy, sw, sh) {
+        const imageData = originalGetImageData.call(this, sx, sy, sw, sh);
+        
+        // Add browser-specific noise patterns
+        for (let i = 0; i < imageData.data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * NOISE_LEVEL * 255;
+          imageData.data[i] = Math.min(255, Math.max(0, imageData.data[i] + noise));
+          imageData.data[i + 1] = Math.min(255, Math.max(0, imageData.data[i + 1] + noise));
+          imageData.data[i + 2] = Math.min(255, Math.max(0, imageData.data[i + 2] + noise));
+        }
+        
+        return imageData;
+      };
+      
+      // Randomize text rendering
+      const originalFillText = context.fillText;
+      context.fillText = function(text, x, y, maxWidth) {
+        const variation = (Math.random() - 0.5) * 0.02;
+        return originalFillText.call(this, text, x + variation, y + variation, maxWidth);
+      };
+      
+      const originalStrokeText = context.strokeText;
+      context.strokeText = function(text, x, y, maxWidth) {
+        const variation = (Math.random() - 0.5) * 0.02;
+        return originalStrokeText.call(this, text, x + variation, y + variation, maxWidth);
+      };
+    }
+    
+    return context;
+  };
+  
+  // Override canvas data export methods
+  const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  HTMLCanvasElement.prototype.toDataURL = function(...args) {
+    // Create temporary canvas with noise
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    if (tempCtx) {
+      tempCanvas.width = this.width;
+      tempCanvas.height = this.height;
+      tempCtx.drawImage(this, 0, 0);
+      
+      // Add minimal pixel-level variations
+      const imageData = tempCtx.getImageData(0, 0, 1, 1);
+      const noiseVariation = NOISE_LEVEL * 255;
+      imageData.data[0] = Math.min(255, Math.max(0, imageData.data[0] + (Math.random() - 0.5) * noiseVariation));
+      imageData.data[1] = Math.min(255, Math.max(0, imageData.data[1] + (Math.random() - 0.5) * noiseVariation));
+      imageData.data[2] = Math.min(255, Math.max(0, imageData.data[2] + (Math.random() - 0.5) * noiseVariation));
+      
+      const x = Math.floor(Math.random() * tempCanvas.width);
+      const y = Math.floor(Math.random() * tempCanvas.height);
+      tempCtx.putImageData(imageData, x, y);
+      
+      return tempCanvas.toDataURL(...args);
+    }
+    
+    return originalToDataURL.apply(this, args);
+  };
+})();
+`.trim();
+}
+
+/**
+ * Generate comprehensive anti-fingerprinting script
+ */
+export function generateAntiDetectionScript(fingerprint: BrowserFingerprint): string {
+  return `
+// Comprehensive anti-detection script
+(function() {
+  // Canvas protection
+  ${generateCanvasNoiseScript(fingerprint.navigator.platform as any, fingerprint.navigator.platform as any)}
+  
+  // WebGL protection
+  const getParameter = WebGLRenderingContext.prototype.getParameter;
+  WebGLRenderingContext.prototype.getParameter = function(parameter) {
+    // Add noise to WebGL parameters
+    if (parameter === 37445) return '${fingerprint.webgl.vendor}';
+    if (parameter === 37446) return '${fingerprint.webgl.renderer}';
+    if (parameter === 7938) return '${fingerprint.webgl.version}';
+    
+    const result = getParameter.call(this, parameter);
+    
+    // Add subtle variations to numeric parameters
+    if (typeof result === 'number' && Math.random() > 0.95) {
+      return result + (Math.random() - 0.5) * 0.001;
+    }
+    
+    return result;
+  };
+  
+  // Audio context fingerprint protection
+  if (window.AudioContext || window.webkitAudioContext) {
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    const originalCreateAnalyser = AudioContextConstructor.prototype.createAnalyser;
+    
+    AudioContextConstructor.prototype.createAnalyser = function() {
+      const analyser = originalCreateAnalyser.call(this);
+      const originalGetFloatFrequencyData = analyser.getFloatFrequencyData;
+      
+      analyser.getFloatFrequencyData = function(array) {
+        originalGetFloatFrequencyData.call(this, array);
+        
+        // Add minimal audio fingerprint noise
+        for (let i = 0; i < array.length; i++) {
+          array[i] += (Math.random() - 0.5) * 0.0001;
+        }
+      };
+      
+      return analyser;
+    };
+  }
+  
+  // Performance timing protection
+  if (window.performance && window.performance.now) {
+    const originalNow = window.performance.now;
+    let timeOffset = Math.random() * 0.1;
+    
+    window.performance.now = function() {
+      return originalNow.call(this) + timeOffset + (Math.random() - 0.5) * 0.01;
+    };
+  }
+})();
+`.trim();
+}
+
+/**
+ * Generate WebRTC IP masking script
+ */
+export function generateWebRTCMaskingScript(platform: Platform): string {
+  const webrtcConfig = generateWebRTCConfig(platform);
+  
+  return `
+// WebRTC IP masking script
+(function() {
+  const FAKE_LOCAL_IPS = ${JSON.stringify(webrtcConfig.localIPs)};
+  ${webrtcConfig.publicIP ? `const FAKE_PUBLIC_IP = '${webrtcConfig.publicIP}';` : ''}
+  
+  if (window.RTCPeerConnection) {
+    const OriginalRTCPeerConnection = window.RTCPeerConnection;
+    
+    window.RTCPeerConnection = function(configuration, ...args) {
+      const pc = new OriginalRTCPeerConnection(configuration, ...args);
+      
+      // Override ICE candidate gathering
+      const originalAddIceCandidate = pc.addIceCandidate;
+      pc.addIceCandidate = function(candidate, ...args) {
+        if (candidate && candidate.candidate) {
+          // Replace real IPs with fake ones in ICE candidates
+          let modifiedCandidate = candidate.candidate;
+          
+          FAKE_LOCAL_IPS.forEach((fakeIP, index) => {
+            // Replace patterns that look like IP addresses
+            modifiedCandidate = modifiedCandidate.replace(
+              /\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b/g,
+              fakeIP
+            );
+          });
+          
+          const modifiedCandidateObj = {
+            ...candidate,
+            candidate: modifiedCandidate
+          };
+          
+          return originalAddIceCandidate.call(this, modifiedCandidateObj, ...args);
+        }
+        
+        return originalAddIceCandidate.call(this, candidate, ...args);
+      };
+      
+      // Override createOffer
+      const originalCreateOffer = pc.createOffer;
+      pc.createOffer = function(...args) {
+        return originalCreateOffer.apply(this, args).then(offer => {
+          if (offer.sdp) {
+            let modifiedSdp = offer.sdp;
+            
+            // Replace IP addresses in SDP
+            FAKE_LOCAL_IPS.forEach(fakeIP => {
+              // Replace host candidates
+              modifiedSdp = modifiedSdp.replace(
+                /a=candidate:([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+typ\\s+host/g,
+                \`a=candidate:$1 $2 $3 $4 \${fakeIP} $6 typ host\`
+              );
+            });
+            
+            ${webrtcConfig.publicIP ? `
+            // Add fake public IP if configured
+            if (FAKE_PUBLIC_IP) {
+              const publicCandidate = \`a=candidate:2 1 UDP 1677729535 \${FAKE_PUBLIC_IP} 54401 typ srflx raddr \${FAKE_LOCAL_IPS[0]} rport 54400 generation 0\\r\\n\`;
+              modifiedSdp += publicCandidate;
+            }
+            ` : ''}
+            
+            return { ...offer, sdp: modifiedSdp };
+          }
+          
+          return offer;
+        });
+      };
+      
+      // Override createAnswer
+      const originalCreateAnswer = pc.createAnswer;
+      pc.createAnswer = function(...args) {
+        return originalCreateAnswer.apply(this, args).then(answer => {
+          if (answer.sdp) {
+            let modifiedSdp = answer.sdp;
+            
+            // Replace IP addresses in answer SDP
+            FAKE_LOCAL_IPS.forEach(fakeIP => {
+              modifiedSdp = modifiedSdp.replace(
+                /a=candidate:([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+([^\\s]+)\\s+typ\\s+host/g,
+                \`a=candidate:$1 $2 $3 $4 \${fakeIP} $6 typ host\`
+              );
+            });
+            
+            return { ...answer, sdp: modifiedSdp };
+          }
+          
+          return answer;
+        });
+      };
+      
+      return pc;
+    };
+    
+    // Copy static properties
+    Object.setPrototypeOf(window.RTCPeerConnection, OriginalRTCPeerConnection);
+    window.RTCPeerConnection.prototype = OriginalRTCPeerConnection.prototype;
+    
+    // Handle deprecated webkit prefix
+    if (window.webkitRTCPeerConnection) {
+      window.webkitRTCPeerConnection = window.RTCPeerConnection;
+    }
+  }
+  
+  // Override getUserMedia to prevent media device fingerprinting
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
+    
+    navigator.mediaDevices.getUserMedia = function(constraints) {
+      // Add minimal constraints randomization
+      const modifiedConstraints = { ...constraints };
+      
+      if (modifiedConstraints.audio === true) {
+        modifiedConstraints.audio = {
+          echoCancellation: Math.random() > 0.5,
+          noiseSuppression: Math.random() > 0.5,
+          autoGainControl: Math.random() > 0.5
+        };
+      }
+      
+      return originalGetUserMedia.call(this, modifiedConstraints);
+    };
   }
 })();
 `.trim();

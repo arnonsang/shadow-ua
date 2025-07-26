@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { Platform, Browser, DeviceType, ExportFormat } from '../../types';
-import { ErrorResponse } from '../types/api';
 
 export interface ValidationError extends Error {
   statusCode: number;

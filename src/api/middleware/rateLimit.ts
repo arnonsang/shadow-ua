@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { ServerConfig } from '../types/api';
+import type { ServerConfig } from '../types/api';
 
 export function createRateLimiter(config: ServerConfig['rateLimit']) {
   return rateLimit({

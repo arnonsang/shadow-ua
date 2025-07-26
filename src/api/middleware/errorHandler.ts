@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { ErrorResponse } from '../types/api';
-import { ValidationError } from './validation';
+import type { Request, Response, NextFunction } from 'express';
+import type { ErrorResponse } from '../types/api';
+import type { ValidationError } from './validation';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -8,7 +8,7 @@ export interface AppError extends Error {
   details?: Record<string, any>;
 }
 
-function createErrorResponse(error: AppError, req: Request): ErrorResponse {
+function createErrorResponse(error: AppError | ValidationError, req: Request): ErrorResponse {
   return {
     error: {
       message: error.message || 'Internal Server Error',
@@ -21,7 +21,7 @@ function createErrorResponse(error: AppError, req: Request): ErrorResponse {
   };
 }
 
-export function errorHandler(error: AppError, req: Request, res: Response, next: NextFunction): void {
+export function errorHandler(error: AppError | ValidationError, req: Request, res: Response, next: NextFunction): void {
   // Log error for debugging
   console.error('API Error:', {
     message: error.message,

@@ -7,6 +7,7 @@ import { requestLogger } from './middleware/logging';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import uaRoutes from './routes/ua';
 import systemRoutes from './routes/system';
+import streamingRoutes from './routes/streaming';
 import { ServerConfig } from './types/api';
 
 export class ShadowUAServer {
@@ -30,7 +31,27 @@ export class ShadowUAServer {
 
     // Security middleware
     if (this.config.security.helmet) {
-      this.app.use(helmet());
+      this.app.use(helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+              "'self'", 
+              "'unsafe-inline'", // Allow inline scripts for demo pages
+              "'unsafe-eval'"    // Allow eval for dynamic content
+            ],
+            styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles
+            imgSrc: ["'self'", "data:", "https:"],
+            fontSrc: ["'self'", "https:", "data:"],
+            connectSrc: ["'self'", "ws:", "wss:"], // Allow WebSocket connections
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            upgradeInsecureRequests: [],
+          },
+        },
+      }));
     }
 
     // CORS
@@ -56,10 +77,12 @@ export class ShadowUAServer {
     // API routes
     this.app.use('/api', uaRoutes);
     this.app.use('/api', systemRoutes);
+    this.app.use('/api', streamingRoutes);
 
     // Root level routes (for convenience)
     this.app.use('/', uaRoutes);
     this.app.use('/', systemRoutes);
+    this.app.use('/', streamingRoutes);
 
     // API info endpoint
     this.app.get('/', (_, res) => {
@@ -71,6 +94,11 @@ export class ShadowUAServer {
           'GET /ua - Generate single user agent',
           'GET /uas - Generate multiple user agents',
           'POST /ua/export - Export user agents in specified format',
+          'GET /stream - Real-time UA streaming with Server-Sent Events',
+          'POST /stream/bulk - Bulk UA generation',
+          'GET /stream/stats - Streaming statistics',
+          'GET /stream/demo - Interactive streaming demo',
+          'GET /stream/client - JavaScript streaming client',
           'GET /health - Health check',
           'GET /stats - API usage statistics',
           'GET /components - Available components and combinations',

@@ -33,12 +33,12 @@ export interface DeviceTemplate {
 
 // Chrome browser templates and versions
 export const CHROME_VERSIONS: BrowserVersion[] = [
-  { major: 120, minor: 0, patch: 0, build: 0, weight: 25 },
-  { major: 119, minor: 0, patch: 0, build: 0, weight: 20 },
-  { major: 118, minor: 0, patch: 0, build: 0, weight: 15 },
-  { major: 117, minor: 0, patch: 0, build: 0, weight: 12 },
-  { major: 116, minor: 0, patch: 0, build: 0, weight: 10 },
-  { major: 115, minor: 0, patch: 0, build: 0, weight: 8 },
+  { major: 138, minor: 0, patch: 7204, build: 168, weight: 25 },
+  { major: 137, minor: 0, patch: 7151, build: 137, weight: 20 },
+  { major: 136, minor: 0, patch: 3240, build: 159, weight: 15 },
+  { major: 135, minor: 0, patch: 3179, build: 95,  weight: 12 },
+  { major: 134, minor: 0, patch: 3124, build: 129, weight: 10 },
+  { major: 133, minor: 0, patch: 3065, build: 92,  weight: 8 },
 ];
 
 export const WEBKIT_VERSIONS: BrowserVersion[] = [
@@ -49,29 +49,29 @@ export const WEBKIT_VERSIONS: BrowserVersion[] = [
 
 // Firefox browser versions
 export const FIREFOX_VERSIONS: BrowserVersion[] = [
-  { major: 120, minor: 0, weight: 25 },
-  { major: 119, minor: 0, weight: 20 },
-  { major: 118, minor: 0, weight: 15 },
-  { major: 117, minor: 0, weight: 12 },
-  { major: 116, minor: 0, weight: 10 },
-  { major: 115, minor: 0, weight: 8 },
+  { major: 141, minor: 0, weight: 25 },
+  { major: 140, minor: 0, weight: 20 },
+  { major: 139, minor: 0, weight: 15 },
+  { major: 138, minor: 0, weight: 12 },
+  { major: 137, minor: 0, weight: 10 },
+  { major: 136, minor: 0, weight: 8 },
 ];
 
 // Safari browser versions
 export const SAFARI_VERSIONS: BrowserVersion[] = [
-  { major: 17, minor: 1, weight: 30 },
-  { major: 17, minor: 0, weight: 25 },
-  { major: 16, minor: 6, weight: 20 },
-  { major: 16, minor: 5, weight: 15 },
-  { major: 15, minor: 6, weight: 10 },
+  { major: 18, minor: 5, weight: 30 },   // Stable
+  { major: 18, minor: 6, weight: 25 },   // Beta (not stable)
+  { major: 18, minor: 4, weight: 20 },
+  { major: 17, minor: 6, weight: 15 },
+  { major: 17, minor: 5, weight: 10 },
 ];
 
 // Edge browser versions
 export const EDGE_VERSIONS: BrowserVersion[] = [
-  { major: 120, minor: 0, patch: 0, build: 0, weight: 25 },
-  { major: 119, minor: 0, patch: 0, build: 0, weight: 20 },
-  { major: 118, minor: 0, patch: 0, build: 0, weight: 15 },
-  { major: 117, minor: 0, patch: 0, build: 0, weight: 12 },
+  { major: 138, minor: 0, patch: 3351, build: 95, weight: 25 },
+  { major: 137, minor: 0, patch: 3296, build: 68, weight: 20 },
+  { major: 136, minor: 0, patch: 3240, build: 131, weight: 15 },
+  { major: 135, minor: 0, patch: 3179, build: 73, weight: 12 },
 ];
 
 // Browser templates
@@ -105,49 +105,80 @@ export const BROWSER_TEMPLATES: BrowserTemplate[] = [
 export const PLATFORM_TEMPLATES: PlatformTemplate[] = [
   {
     name: Platform.Windows,
-    versions: ['NT 10.0; Win64; x64', 'NT 10.0; WOW64', 'NT 6.1; Win64; x64', 'NT 6.1; WOW64'],
+    versions: [
+      'NT 10.0; Win64; x64',
+      'NT 10.0; WOW64',
+      'NT 10.0; Win64; ARM64',
+      'NT 10.0; WOW64' // legacy
+    ],
     template: 'Windows {version}',
     weight: 45,
   },
   {
     name: Platform.macOS,
-    versions: ['Intel Mac OS X 10_15_7', 'Intel Mac OS X 10_14_6', 'Intel Mac OS X 10_13_6'],
+    versions: [
+      'Intel Mac OS X 14_0', // Sequoia
+      'Intel Mac OS X 13_6', // Ventura
+      'Intel Mac OS X 12_7'  // Monterey
+    ],
     template: 'Macintosh; {version}',
     weight: 25,
   },
   {
     name: Platform.Linux,
-    versions: ['X11; Linux x86_64', 'X11; Linux i686', 'X11; Ubuntu; Linux x86_64', 'X11; Ubuntu; Linux i686'],
+    versions: [
+      'X11; Linux x86_64',
+      'X11; Ubuntu; Linux x86_64',
+      'X11; Linux aarch64'
+    ],
     template: '{version}',
     weight: 8,
   },
   {
     name: Platform.Android,
-    versions: ['Linux; Android 13', 'Linux; Android 12', 'Linux; Android 11', 'Linux; Android 10'],
+    versions: [
+      'Linux; Android 16',
+      'Linux; Android 15',
+      'Linux; Android 14'
+    ],
     template: '{version}',
     weight: 15,
   },
   {
     name: Platform.iOS,
-    versions: ['iPhone; CPU iPhone OS 17_1 like Mac OS X', 'iPhone; CPU iPhone OS 16_6 like Mac OS X', 'iPad; CPU OS 17_1 like Mac OS X', 'iPad; CPU OS 16_6 like Mac OS X'],
+    versions: [
+      'iPhone; CPU iPhone OS 18_6 like Mac OS X',
+      'iPhone; CPU iPhone OS 18_5 like Mac OS X',
+      'iPad; CPU OS 18_5 like Mac OS X'
+    ],
     template: '{version}',
     weight: 7,
   },
 ];
 
-// Device models for Android
-export const ANDROID_DEVICES = [
-  'SM-G998B', 'SM-G991B', 'SM-G996B', 'SM-A525F', 'SM-A725F', 'SM-N986B',
-  'Pixel 7 Pro', 'Pixel 7', 'Pixel 6 Pro', 'Pixel 6', 'Pixel 5',
-  'OnePlus 11', 'OnePlus 10 Pro', 'OnePlus 9 Pro',
-  'LM-G710', 'LM-V500N', 'LM-G820',
-];
 
 // Device models for iOS
 export const IOS_DEVICES = [
-  'iPhone14,3', 'iPhone14,2', 'iPhone13,4', 'iPhone13,3', 'iPhone13,2', 'iPhone13,1',
-  'iPhone12,8', 'iPhone12,5', 'iPhone12,3', 'iPhone12,1',
-  'iPad13,11', 'iPad13,10', 'iPad13,2', 'iPad13,1',
+  'iPhone16,1',     // iPhone 16
+  'iPhone16,2',     // iPhone 16 Plus
+  'iPhone16,3',     // iPhone 16 Pro
+  'iPhone16,4',     // iPhone 16 Pro Max
+  'iPhone16e',      // iPhone 16e (budget 2025 model)
+  'iPhone15,2',     // iPhone 14 Pro etc.
+  'iPhone15,3',     // iPhone 14 Pro Max / 15+
+  'iPhone14,2',     // iPhone 13 Pro
+  'iPhone14,3'      // iPhone 13 Pro Max
+];
+
+// Device models for Android
+export const ANDROID_DEVICES = [
+  'SM-S931B',       // Galaxy S25
+  'Pixel 9 Pro',
+  'Pixel 9',
+  'SM-S928B',       // Galaxy S24 Ultra
+  'SM-G556B',       // Galaxy Xcover7 / Motorola G-series
+  'Moto g (2025)',
+  'Moto Edge 30 Neo'
 ];
 
 // Screen resolutions by device type

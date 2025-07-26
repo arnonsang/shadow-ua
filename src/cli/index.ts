@@ -11,6 +11,7 @@ import {
 import { generateMultipleModularUAStrings } from '../core/modular-generator';
 import { exportUAs, exportToBurpSuite, exportToK6, exportToJMeter, exportToLocust } from '../exports';
 import { Platform, Browser, DeviceType, ExportFormat, UAFilter } from '../types';
+import { startInteractiveMode } from './interactive';
 
 const program = new Command();
 
@@ -274,6 +275,21 @@ program
       const server = new ShadowUAServer(config);
       await server.start();
       
+    } catch (error) {
+      console.error(`Error: ${error}`);
+      process.exit(1);
+    }
+  });
+
+// Interactive CLI wizard command
+program
+  .command('interactive')
+  .alias('wizard')
+  .alias('i')
+  .description('Start interactive User-Agent generation wizard')
+  .action(async () => {
+    try {
+      await startInteractiveMode();
     } catch (error) {
       console.error(`Error: ${error}`);
       process.exit(1);

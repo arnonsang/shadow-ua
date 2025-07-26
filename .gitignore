@@ -92,13 +92,18 @@ pids
 # TernJS port file
 .tern-port
 
-# ShadowUA specific
+# ShadowUA specific test files
 custom-uas.txt
 test-*.txt
 test-*.js
 test-*.json
 *-test-output*
 ua-*-*.txt
+user-agents-*.txt
+
+#jlr internal package links / configs
+*.jlr.jsonc
+*.jlr.local.vars
 
 # Documentation that shouldn't be in package
 docs/
